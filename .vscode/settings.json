@@ -1,0 +1,6 @@
+{
+  "yaml.schemas": {
+    "https://json.schemastore.org/pubspec.json": "file:///Users/manjilshrestha/Desktop/flutter_project/todo/todo_app/api_calling_app/news_apps/united_newa_app/collector_app/collector_app/pubspec.yaml"
+  },
+  "dart.flutterSdkPath": ".fvm/versions/3.19.0"
+}
