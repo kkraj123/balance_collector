@@ -114,9 +114,9 @@ class SenraiseReceiptPrinter {
       await _printDivider();
 
       // Footer
-      // await _print('');
-      await _printKV('Signature', '-------------');
-      await _print(userData.officer.fullName );
+      await _print('');
+      await _printKV('Signature', '-------------------');
+      await _printKV(userData.officer.fullName , '');
       // await _print('Signature'       '-----------------');
       // await _print('       ${userData.officer.fullName}');
       // await _print('');
