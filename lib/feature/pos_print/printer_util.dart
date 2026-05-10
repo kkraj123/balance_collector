@@ -1,4 +1,6 @@
 // import 'package:flutter/material.dart';
+import 'package:collector_app/common/models/users.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:sunmi_printer_plus/sunmi_printer_plus.dart';
 import 'package:sunmi_printer_plus/enums.dart';
@@ -36,6 +38,7 @@ class CollectionReceiptPrinter {
   }
 
   static Future<bool> printCollectionReceipt({
+     User? userData,
     required String userName,
     required String groupName,
     required DateTime collectionDate,
@@ -51,7 +54,8 @@ class CollectionReceiptPrinter {
 
     try {
       await SunmiPrinter.startTransactionPrint(true);
-      await _printCenteredBold('Info Brains Solutions',
+
+      await _printCenteredBold(userData!.client.cleintName ?? '',
           fontSize: SunmiFontSize.LG);
       await SunmiPrinter.lineWrap(1);
       await _printReceiptDetails(

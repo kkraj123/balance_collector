@@ -24,7 +24,7 @@ class SharedPref {
   static const _accountsList = "accountsList";
 
   static const _rememberMe = 'rememberMe';
-
+  
   static Future setRememberMe(bool status) async {
     final instance = await SharedPreferences.getInstance();
     await instance.setBool(_rememberMe, status);

@@ -296,6 +296,7 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
 
                               bool printSuccess = await CollectionReceiptPrinter
                                   .printCollectionReceipt(
+                                    
                                 userName: widget.account.first['ac_name'],
                                 groupName:
                                     widget.account.first['center_name'] ??

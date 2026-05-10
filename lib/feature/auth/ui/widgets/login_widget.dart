@@ -86,13 +86,14 @@ class _LoginWidgetState extends State<LoginWidget> {
         }
         if (state is CommonStateSuccess<User>) {
           setState(() => _isLoading = false);
-
+          print('userObject :${state.data.toJson()}');
           if (_rememberMe) {
             SharedPref.setUsername(staffIdController.text);
             SharedPref.setPassword(passwordController.text);
             SharedPref.setAlias(clientAliasController.text);
             SharedPref.setUrl(urlController.text);
             SharedPref.setRememberMe(true);
+            SharedPref.setUser(state.data);
           }
 
           NavigationService.push(target: const DashboardWidget());
