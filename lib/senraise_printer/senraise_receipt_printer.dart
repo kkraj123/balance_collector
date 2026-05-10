@@ -82,10 +82,11 @@ class SenraiseReceiptPrinter {
 
       // Customer info
       await _print('Acc Name: $userName');
-      await _printDivider();
+      await _printKV('ID Number:', idNumber);
+      // await _printDivider();
       if (groupName.isNotEmpty) await _printKV('Group Name:', groupName);
       await _printKV('Col. Date:', _formatDate(collectionDate));
-      await _printKV('ID Number:', idNumber);
+      
       // await _print('');
       await _printDivider();
 
