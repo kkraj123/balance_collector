@@ -43,6 +43,7 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
   double totalInputAmount = 0;
   String coordinates = '';
   late User? userDetails;
+  String clientAlia = '';
 
   @override
   void dispose() {
@@ -101,6 +102,7 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
 
   laodUserDetails() async {
     userDetails = await SharedPref.getUser();
+    clientAlia = await SharedPref.getAlias();
   }
 
   Future<void> _fetchLocation() async {
@@ -345,6 +347,7 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
                                   idNumber:
                                       widget.account.first['id_no'] ?? 'N/A',
                                   accounts: collectionAccounts,
+                                  clientAlia: clientAlia
                                 );
 
                                 if (!success) print('Failed to print receipt');

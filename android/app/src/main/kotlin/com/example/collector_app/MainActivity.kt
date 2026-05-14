@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
+import android.graphics.Bitmap          
+import android.graphics.BitmapFactory 
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -91,6 +93,35 @@ class MainActivity : FlutterActivity() {
                             result.success("QR Printed")
                         }
                     }
+                    "printImageBytes" -> {
+                            val imageBytes = call.argument<ByteArray>("imageBytes")
+                            val width = call.argument<Int>("width") ?: 200
+                            val height = call.argument<Int>("height") ?: 200
+
+                            executeWhenReady(result) {
+                                if (imageBytes != null) {
+                                    val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                                    if (bitmap != null) {
+                                        val scaled = Bitmap.createScaledBitmap(bitmap, width, height, true)
+
+                                        // Manually center on a 384px wide canvas (58mm printer)
+                                        val printerWidth = 384
+                                        val centeredBitmap = Bitmap.createBitmap(printerWidth, height, Bitmap.Config.ARGB_8888)
+                                        val canvas = android.graphics.Canvas(centeredBitmap)
+                                        canvas.drawColor(android.graphics.Color.WHITE) // white background
+                                        val xOffset = ((printerWidth - width) / 2).toFloat()
+                                        canvas.drawBitmap(scaled, xOffset, 0f, null)
+
+                                        printerService?.printBitmap(centeredBitmap)
+                                        result.success("Image Printed")
+                                    } else {
+                                        result.error("DECODE_ERROR", "Failed to decode bitmap", null)
+                                    }
+                                } else {
+                                    result.error("NULL_BYTES", "No image bytes received", null)
+                                }
+                            }
+                        }
 
                     "printBarcode" -> {
                         val data = call.argument<String>("data")

@@ -1,5 +1,6 @@
 import 'package:collector_app/common/models/users.dart';
 import 'package:collector_app/feature/pos_print/printer_util.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -30,6 +31,21 @@ class SenraiseReceiptPrinter {
         ? value.substring(0, available)
         : value.padLeft(available);
     await _print('$key$val');
+  }
+
+  static Future<void> _printImageCentered({
+    required String imagePath,
+    bool isAsset = true,
+    int width = 200,
+    int height = 200,
+  }) async {
+    await _channel.invokeMethod('printImage', {
+      'imagePath': imagePath,
+      'isAsset': isAsset,
+      'width': width,
+      'height': height,
+      'align': 'center', // hint for native side
+    });
   }
 
   // ── string utils ──────────────────────────────────────────────────────────
@@ -73,9 +89,17 @@ class SenraiseReceiptPrinter {
     required String collectionLocation,
     required String idNumber,
     required List<CollectionAccount> accounts,
+    required String clietAlia
   }) async {
     try {
       // Header
+      await _printImageFromUrl(
+        url:
+            'https://internal.infobraintechs.com/api/collector/logo?client_alias=$clietAlia',
+        width: 200,
+        height: 200,
+      );
+      await _print('');
       await _printCentered(userData!.client.cleintName ?? '');
       await _printCentered('COLLECTION RECEIPT');
       await _printDivider();
@@ -86,7 +110,7 @@ class SenraiseReceiptPrinter {
       // await _printDivider();
       if (groupName.isNotEmpty) await _printKV('Group Name:', groupName);
       await _printKV('Col. Date:', _formatDate(collectionDate));
-      
+
       // await _print('');
       await _printDivider();
 
@@ -117,7 +141,7 @@ class SenraiseReceiptPrinter {
       // Footer
       await _print('');
       await _printKV('Signature', '-------------------');
-      await _printKV(userData.officer.fullName , '');
+      await _printKV(userData.officer.fullName, '');
       // await _print('Signature'       '-----------------');
       // await _print('       ${userData.officer.fullName}');
       // await _print('');
@@ -138,4 +162,38 @@ class SenraiseReceiptPrinter {
       return false;
     }
   }
+
+  static Future<void> _printImageFromUrl({
+  required String url,
+  int width = 200,
+  int height = 200,
+}) async {
+  try {
+    final dio = Dio();
+    final response = await dio.get<List<int>>(
+      url,
+      options: Options(
+        responseType: ResponseType.bytes,
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+
+
+    if (response.statusCode == 200 && response.data != null) {
+      final bytes = Uint8List.fromList(response.data!);
+
+      await _channel.invokeMethod('printImageBytes', {
+        'imageBytes': bytes,
+        'width': width,
+        'height': height,
+      });
+
+      print('printImageBytes channel call done');
+    } else {
+      print('Bad response: ${response.statusCode}');
+    }
+  } catch (e, stack) {
+    print('Logo fetch error: $e');
+  }
+}
 }

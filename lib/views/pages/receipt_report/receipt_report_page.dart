@@ -46,6 +46,7 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
       _sortFilteredAccounts();
     });
   }
+  String clientAlia = '';
 
   void _sortFilteredAccounts() {
     final sortedKeys = _filteredAccounts.keys.toList()
@@ -235,8 +236,10 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
     fetchuserDetials();
   }
 
+
   fetchuserDetials() async {
     userData = await SharedPref.getUser();
+    clientAlia = await SharedPref.getAlias();
     print('userData : ${userData!.toJson()}');
   }
 
@@ -462,6 +465,7 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
                             accounts.first['col_location'] ?? 'N/A',
                         idNumber: accounts.first['id_no'] ?? 'N/A',
                         accounts: collectionAccounts,
+                        clientAlia: clientAlia
                       );
 
                       if (!success) print('Failed to print receipt');

@@ -103,6 +103,7 @@ class PrinterService {
   required DateTime collectionDate,
   required String collectionLocation,
   required String idNumber,
+  required String clientAlia,
   required List<CollectionAccount> accounts,
 }) async {
   final type = await PrinterDetector.detect();
@@ -126,6 +127,7 @@ class PrinterService {
         collectionLocation: collectionLocation,
         idNumber: idNumber,
         accounts: accounts,
+        clietAlia: clientAlia
       );
     case PrinterType.none:
       return false;
