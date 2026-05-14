@@ -148,12 +148,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 });
               }),
               onQRPressed: () {
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(
-                //     builder: (context) => const QRScanWidget(),
-                //   ),
-                // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const QRScanWidget(),
+                  ),
+                );
               },
               isQrShow: true,
             ),
