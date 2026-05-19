@@ -1,7 +1,9 @@
 import 'package:collector_app/common/app/theme.dart';
+import 'package:collector_app/common/shared_pref.dart';
 import 'package:collector_app/common/utils/size_utils.dart';
 import 'package:collector_app/common/widget/common_page.dart';
 import 'package:collector_app/feature/pos_print/printer_widget.dart';
+import 'package:collector_app/senraise_printer/LogoCacheService.dart';
 import 'package:collector_app/views/pages/Data%20pull/pull_data_screen.dart';
 import 'package:collector_app/views/pages/payment_page/payment_page_widget.dart';
 import 'package:collector_app/views/pages/data_push/PushDataScreen.dart';
@@ -44,6 +46,23 @@ class _DashboardWidgetState extends State<DashboardWidget> {
         title: 'Pull Data',
         destination: const PullData()),
   ];
+
+  String clientAlias = '';
+
+  @override
+  void initState() {
+    super.initState();
+    loadClientAlias();
+    _prefetchLogo();
+  }
+
+  void _prefetchLogo() {
+    LogoCacheService.instance.preFetchLogo(clientAlias);
+  }
+
+  loadClientAlias() async {
+    clientAlias = await SharedPref.getAlias();
+  }
 
   @override
   Widget build(BuildContext context) {

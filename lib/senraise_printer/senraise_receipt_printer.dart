@@ -1,5 +1,6 @@
 import 'package:collector_app/common/models/users.dart';
 import 'package:collector_app/feature/pos_print/printer_util.dart';
+import 'package:collector_app/senraise_printer/LogoCacheService.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -57,13 +58,6 @@ class SenraiseReceiptPrinter {
     return ' ' * leftPad + text + ' ' * rightPad;
   }
 
-  // static String _center(String text, int width) {
-  //   if (text.length >= width) return text;
-  //   final totalPad = width - text.length;
-  //   final leftPad = totalPad ~/ 2;
-  //   return ' ' * leftPad + text;
-  // }
-
   static String _formatDate(DateTime dt) =>
       DateFormat('yyyy-MM-dd hh:mm a').format(dt);
 
@@ -81,24 +75,24 @@ class SenraiseReceiptPrinter {
 
   // ── public API ─────────────────────────────────────────────────────────────
 
-  static Future<bool> printCollectionReceipt({
-    User? userData,
-    required String userName,
-    required String groupName,
-    required DateTime collectionDate,
-    required String collectionLocation,
-    required String idNumber,
-    required List<CollectionAccount> accounts,
-    required String clietAlia
-  }) async {
+  static Future<bool> printCollectionReceipt(
+      {User? userData,
+      required String userName,
+      required String groupName,
+      required DateTime collectionDate,
+      required String collectionLocation,
+      required String idNumber,
+      required List<CollectionAccount> accounts,
+      required String clietAlia}) async {
     try {
       // Header
-      await _printImageFromUrl(
-        url:
-            'https://internal.infobraintechs.com/api/collector/logo?client_alias=$clietAlia',
-        width: 200,
-        height: 200,
-      );
+      // await _printImageFromUrl(
+      //   url:
+      //       'https://internal.infobraintechs.com/api/collector/logo?client_alias=$clietAlia',
+      //   width: 200,
+      //   height: 200,
+      // );
+      await _printLogo(clietAlia, width: 200, height: 200);
       await _print('');
       await _printCentered(userData!.client.cleintName ?? '');
       await _printCentered('COLLECTION RECEIPT');
@@ -121,8 +115,8 @@ class SenraiseReceiptPrinter {
 
       // Account rows
       for (final account in accounts) {
+        if (account.amount <= 0) continue;
         await _print(_formatAccountLine(
-          // account.accountType,
           account.accountNumber,
           account.amount,
         ));
@@ -163,37 +157,27 @@ class SenraiseReceiptPrinter {
     }
   }
 
-  static Future<void> _printImageFromUrl({
-  required String url,
-  int width = 200,
-  int height = 200,
-}) async {
-  try {
-    final dio = Dio();
-    final response = await dio.get<List<int>>(
-      url,
-      options: Options(
-        responseType: ResponseType.bytes,
-        receiveTimeout: const Duration(seconds: 10),
-      ),
-    );
-
-
-    if (response.statusCode == 200 && response.data != null) {
-      final bytes = Uint8List.fromList(response.data!);
-
+    static Future<void> _printLogo(String clientAlias,
+      {int width = 200, int height = 200}) async {
+    try {
+      final Uint8List? bytes =
+          await LogoCacheService.instance.getLogoBytes(clientAlias);
+ 
+      if (bytes == null) {
+        // No cache and no network — skip logo gracefully, receipt still prints
+        print('SenraiseReceiptPrinter: logo unavailable, skipping.');
+        return;
+      }
+ 
       await _channel.invokeMethod('printImageBytes', {
         'imageBytes': bytes,
         'width': width,
         'height': height,
       });
-
-      print('printImageBytes channel call done');
-    } else {
-      print('Bad response: ${response.statusCode}');
+ 
+      print('SenraiseReceiptPrinter: logo printed successfully.');
+    } catch (e) {
+      print('SenraiseReceiptPrinter: logo print error — $e');
     }
-  } catch (e, stack) {
-    print('Logo fetch error: $e');
   }
-}
 }
