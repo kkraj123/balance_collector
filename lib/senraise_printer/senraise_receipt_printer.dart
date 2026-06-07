@@ -92,8 +92,8 @@ class SenraiseReceiptPrinter {
       //   width: 200,
       //   height: 200,
       // );
-      await _printLogo(clietAlia, width: 200, height: 200);
-      await _print('');
+      // await _printLogo(clietAlia, width: 200, height: 200);
+      // await _print('');
       await _printCentered(userData!.client.cleintName ?? '');
       await _printCentered('COLLECTION RECEIPT');
       await _printDivider();
@@ -139,13 +139,13 @@ class SenraiseReceiptPrinter {
       // await _print('Signature'       '-----------------');
       // await _print('       ${userData.officer.fullName}');
       // await _print('');
-      await _printDivider();
-      await _printCentered('Generated On');
-      await _printCentered('Balance Core Banking Solution');
-      await _printCentered('Infobrain Technologies Pvt. Ltd.');
-      await _printCentered('9851159727, 9851414714');
-      await _print('');
-      await _printCentered('Thank You!');
+      // await _printDivider();
+      // await _printCentered('Generated On');
+      // await _printCentered('Balance Core Banking Solution');
+      // await _printCentered('Infobrain Technologies Pvt. Ltd.');
+      // await _printCentered('9851159727, 9851414714');
+      // await _print('');
+      // await _printCentered('Thank You!');
 
       // Feed paper
       await _print('\n\n\n');
