@@ -110,8 +110,8 @@ class SenraiseReceiptPrinter {
 
       // Account table header
       // await _print('Acc No.     Amount');
-      await _printKV('Acc No.', 'Amount');
-      await _printDivider();
+      // await _printKV('Acc No.', 'Amount');
+      // await _printDivider();
 
       // Account rows
       for (final account in accounts) {
@@ -125,31 +125,19 @@ class SenraiseReceiptPrinter {
         // }
         await _print('');
       }
-
-      // Total
-      await _printDivider();
-      final total = accounts.fold<double>(0, (sum, a) => sum + a.amount);
-      await _printCentered('Total: Rs.${total.toStringAsFixed(1)}');
-      await _printDivider();
+      final activeAccounts = accounts.where((a) => a.amount > 0).toList();
+      if (activeAccounts.length >= 2) {
+        await _printDivider();
+        final total =
+            activeAccounts.fold<double>(0, (sum, a) => sum + a.amount);
+        await _printCentered('Total: Rs.${total.toStringAsFixed(1)}');
+        await _printDivider();
+      }
 
       // Footer
       await _print('');
       await _printKV('Signature', '-------------------');
       await _printKV(userData.officer.fullName, '');
-      // await _print('Signature'       '-----------------');
-      // await _print('       ${userData.officer.fullName}');
-      // await _print('');
-      // await _printDivider();
-      // await _printCentered('Generated On');
-      // await _printCentered('Balance Core Banking Solution');
-      // await _printCentered('Infobrain Technologies Pvt. Ltd.');
-      // await _printCentered('9851159727, 9851414714');
-      // await _print('');
-      // await _printCentered('Thank You!');
-
-      // Feed paper
-      await _print('\n\n\n');
-
       return true;
     } catch (e) {
       print('SenraiseReceiptPrinter error: $e');
@@ -157,24 +145,24 @@ class SenraiseReceiptPrinter {
     }
   }
 
-    static Future<void> _printLogo(String clientAlias,
+  static Future<void> _printLogo(String clientAlias,
       {int width = 200, int height = 200}) async {
     try {
       final Uint8List? bytes =
           await LogoCacheService.instance.getLogoBytes(clientAlias);
- 
+
       if (bytes == null) {
         // No cache and no network — skip logo gracefully, receipt still prints
         print('SenraiseReceiptPrinter: logo unavailable, skipping.');
         return;
       }
- 
+
       await _channel.invokeMethod('printImageBytes', {
         'imageBytes': bytes,
         'width': width,
         'height': height,
       });
- 
+
       print('SenraiseReceiptPrinter: logo printed successfully.');
     } catch (e) {
       print('SenraiseReceiptPrinter: logo print error — $e');
