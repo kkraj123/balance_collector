@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/widget/common_page.dart';
 import 'package:collector_app/feature/database/cb_db.dart';
@@ -9,6 +11,8 @@ import 'package:collector_app/views/receipt_screen/account_table_widget.dart';
 import 'package:collector_app/views/receipt_screen/search_service.dart';
 import 'package:collector_app/views/receipt_screen/search_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class ReceiptScreen extends StatefulWidget {
   const ReceiptScreen({super.key});
@@ -314,36 +318,118 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Widget _buildCustomerInfo(String name, List<Map<String, dynamic>> accounts) {
     final uniqueNames = accounts.map((e) => e['ac_name']).toSet().toList();
     final joinedNames = uniqueNames.join(', ');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Text(
-          "Name: $joinedNames",
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Name: $joinedNames",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                "Address: ${accounts.first['p_address'] ?? 'N/A'}",
+              ),
+              Text(
+                "Group Name: ${accounts.first['center_name'] ?? 'N/A'}",
+              ),
+              (accounts.first['contact'] != '/' &&
+                      accounts.first['contact'] != null)
+                  ? Row(
+                      children: [
+                        Text(
+                          "Contact: ${accounts.first['contact'] ?? 'N/A'}",
+                        ),
+                        const Icon(
+                          Icons.call_outlined,
+                          color: CustomTheme.appThemeColorPrimary,
+                        ),
+                      ],
+                    )
+                  : Container(),
+              Text(
+                "Id Number: ${accounts.first['id_no'] ?? 'N/A'}",
+              ),
+            ],
+          ),
         ),
-        Text(
-          "Address: ${accounts.first['p_address'] ?? 'N/A'}",
-        ),
-        Text(
-          "Group Name: ${accounts.first['center_name'] ?? 'N/A'}",
-        ),
-        (accounts.first['contact'] != '/' && accounts.first['contact'] != null)
-            ? Row(
+        InkWell(
+          onTap: () {
+            _showQrDialog(context, name, accounts);
+          },
+          child: Container(
+            height: 80,
+            width: 80,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10), color: Colors.white),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    "Contact: ${accounts.first['contact'] ?? 'N/A'}",
+                  SvgPicture.asset('assets/icons/qrImage.svg'),
+                  const SizedBox(
+                    height: 5,
                   ),
-                  const Icon(
-                    Icons.call_outlined,
-                    color: CustomTheme.appThemeColorPrimary,
-                  ),
+                  const Text(
+                    'Print QR',
+                    style: TextStyle(
+                        color: Colors.green, fontWeight: FontWeight.normal),
+                    textAlign: TextAlign.center,
+                    textScaler: TextScaler.linear(1),
+                  )
                 ],
-              )
-            : Container(),
-        Text(
-          "Id Number: ${accounts.first['id_no'] ?? 'N/A'}",
-        ),
+              ),
+            ),
+          ),
+        )
       ],
+    );
+  }
+
+  String _buildQrData(String name, List<Map<String, dynamic>> accounts) {
+    final idNo = accounts.first['id_no']?.toString() ?? '';
+    final accName = accounts.first['ac_name']?.toString() ??
+        ''; 
+    return idNo;
+  }
+
+  void _showQrDialog(
+      BuildContext context, String name, List<Map<String, dynamic>> accounts) {
+    final qrData = _buildQrData(name, accounts);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(name),
+          content: SizedBox(
+            width: 260,
+            height: 260,
+            child: QrImageView(
+              data: qrData,
+              version: QrVersions.auto,
+              size: 240.0,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // hook into your existing print flow here
+              },
+              child: const Text('Print'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

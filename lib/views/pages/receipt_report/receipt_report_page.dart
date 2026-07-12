@@ -13,7 +13,6 @@ import 'package:collector_app/views/pages/Input_data_table/open_google_map.dart'
 import 'package:collector_app/views/receipt_screen/search_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class ReceiptReportPage extends StatefulWidget {
   final String? acNo;
@@ -36,6 +35,8 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
   final CBDB _db = CBDB();
   double grandTotalAmount = 0;
   int receiptCount = 0;
+  int get totalAccountsCount =>
+      _filteredAccounts.values.fold(0, (sum, list) => sum + list.length);
   bool _sortByDateAscending = true;
   Map<String, List<Map<String, dynamic>>> _allAccounts = {};
   late User? userData;
@@ -46,6 +47,7 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
       _sortFilteredAccounts();
     });
   }
+
   String clientAlia = '';
 
   void _sortFilteredAccounts() {
@@ -74,6 +76,7 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
     }
 
     _filteredAccounts = sortedMap;
+
     print('fliterAccount :$_filteredAccounts');
   }
 
@@ -236,7 +239,6 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
     fetchuserDetials();
   }
 
-
   fetchuserDetials() async {
     userData = await SharedPref.getUser();
     clientAlia = await SharedPref.getAlias();
@@ -275,37 +277,71 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          "Amount: ",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          "Rs.$grandTotalAmount",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: CustomTheme.appThemeColorPrimary,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Amount",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "Rs.$grandTotalAmount",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: CustomTheme.appThemeColorPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                         const Spacer(),
-                        const Text(
-                          "Count: ",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Count",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "$totalAccountsCount",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: CustomTheme.appThemeColorPrimary,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          "$receiptCount",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: CustomTheme.appThemeColorPrimary,
-                          ),
-                        ),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Member",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "$receiptCount",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: CustomTheme.appThemeColorPrimary,
+                              ),
+                            ),
+                          ],
+                        )
                       ],
                     ),
                   ),
@@ -454,19 +490,18 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
                           .join(', ');
 
                       final success = await PrinterService.printReceipt(
-                        userData: userData,
-                        userName: uniqueNames,
-                        groupName: accounts.first['center_name'] ?? 'N/A',
-                        collectionDate:
-                            accounts.first['col_date_time'] is DateTime
-                                ? accounts.first['col_date_time']
-                                : DateTime.now(),
-                        collectionLocation:
-                            accounts.first['col_location'] ?? 'N/A',
-                        idNumber: accounts.first['id_no'] ?? 'N/A',
-                        accounts: collectionAccounts,
-                        clientAlia: clientAlia
-                      );
+                          userData: userData,
+                          userName: uniqueNames,
+                          groupName: accounts.first['center_name'] ?? 'N/A',
+                          collectionDate:
+                              accounts.first['col_date_time'] is DateTime
+                                  ? accounts.first['col_date_time']
+                                  : DateTime.now(),
+                          collectionLocation:
+                              accounts.first['col_location'] ?? 'N/A',
+                          idNumber: accounts.first['id_no'] ?? 'N/A',
+                          accounts: collectionAccounts,
+                          clientAlia: clientAlia);
 
                       if (!success) print('Failed to print receipt');
                     } else {

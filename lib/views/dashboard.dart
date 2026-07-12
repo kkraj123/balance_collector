@@ -9,6 +9,7 @@ import 'package:collector_app/views/pages/payment_page/payment_page_widget.dart'
 import 'package:collector_app/views/pages/data_push/PushDataScreen.dart';
 import 'package:collector_app/views/pages/receipt_report/receipt_report_page.dart';
 import 'package:collector_app/views/receipt_screen/receipt_screen.dart';
+import 'package:collector_app/views/receipt_summery/receipt_summry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -25,18 +26,24 @@ class _DashboardWidgetState extends State<DashboardWidget> {
         iconPath: 'assets/icons/icon4.svg',
         title: 'Receipt',
         destination: const ReceiptScreen()),
-    DashboardItem(
-        iconPath: 'assets/icons/icon5.svg',
-        title: 'Payment',
-        destination: const PaymentPageWidget()),
+    // DashboardItem(
+    //     iconPath: 'assets/icons/icon5.svg',
+    //     title: 'Payment',
+    //     destination: const PaymentPageWidget()),
+     DashboardItem(
+        iconPath: 'assets/icons/icon1.svg',
+        title: 'Receipt Summery',
+        destination: const ReceiptSummryScreen()),
     DashboardItem(
         iconPath: 'assets/icons/icon2.svg',
         title: 'Receipt Report',
         destination: const ReceiptReportPage()),
-    DashboardItem(
-        iconPath: 'assets/icons/icon1.svg',
-        title: 'Payment Report',
-        destination: const PaymentPageWidget()),
+    // DashboardItem(
+    //     iconPath: 'assets/icons/icon1.svg',
+    //     title: 'Payment Report',
+    //     destination: const PaymentPageWidget()),
+
+   
     DashboardItem(
         iconPath: 'assets/icons/icon6.svg',
         title: 'Push Data',

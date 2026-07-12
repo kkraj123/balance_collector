@@ -46,6 +46,7 @@ dependencies:
   senraise_printer: ^0.0.6
   device_info_plus: ^10.1.0
   path_provider: ^2.1.5
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

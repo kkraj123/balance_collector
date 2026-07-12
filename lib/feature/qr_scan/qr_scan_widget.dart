@@ -524,6 +524,7 @@ class _QRScanWidgetState extends State<QRScanWidget>
     setState(() {
       isProcessing = true;
       scannedBarcode = barcode;
+      print('scannerCode : ${scannedBarcode}');
     });
 
     _handleSearch(barcode.rawValue!);
