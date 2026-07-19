@@ -669,6 +669,7 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
   Widget _buildAccountsTable(
     List<Map<String, dynamic>> accounts,
   ) {
+    print('accountListLength ${accounts.length}');
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),

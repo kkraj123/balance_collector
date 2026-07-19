@@ -391,8 +391,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
   String _buildQrData(String name, List<Map<String, dynamic>> accounts) {
     final idNo = accounts.first['id_no']?.toString() ?? '';
-    final accName = accounts.first['ac_name']?.toString() ??
-        ''; 
+    final accName = accounts.first['ac_name']?.toString() ?? '';
     return idNo;
   }
 
@@ -406,12 +405,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         return AlertDialog(
           title: Text(name),
           content: SizedBox(
-            width: 260,
-            height: 260,
+            width: 200,
+            height: 200,
             child: QrImageView(
               data: qrData,
               version: QrVersions.auto,
-              size: 240.0,
+              size: 200.0,
               backgroundColor: Colors.white,
             ),
           ),

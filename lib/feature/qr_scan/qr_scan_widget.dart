@@ -419,6 +419,7 @@ class _QRScanWidgetState extends State<QRScanWidget>
     _groupedAccounts.forEach((name, accounts) {
       final matchingAccounts = accounts.where((account) {
         final memberNumber = account['id_no'].toLowerCase();
+        print('memberId: $memberNumber');
         return memberNumber.contains(query);
       }).toList();
       if (matchingAccounts.isNotEmpty) {
@@ -433,6 +434,7 @@ class _QRScanWidgetState extends State<QRScanWidget>
         final account = accountsList;
         setState(() {
           scannedUser = account.first['ac_name'];
+          print('userName :$scannedUser');
         });
         controller.stop();
         Navigator.push(
