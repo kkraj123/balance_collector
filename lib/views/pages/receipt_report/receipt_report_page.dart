@@ -1,10 +1,14 @@
 import 'dart:async';
 
 import 'package:collector_app/common/app/theme.dart';
+import 'package:collector_app/common/models/users.dart';
+import 'package:collector_app/common/shared_pref.dart';
 import 'package:collector_app/common/widget/common_page.dart';
 import 'package:collector_app/common/widget/customtabletextstyle.dart';
 import 'package:collector_app/feature/database/cb_db.dart';
 import 'package:collector_app/feature/pos_print/printer_util.dart';
+import 'package:collector_app/senraise_printer/helper.dart';
+import 'package:collector_app/senraise_printer/printer_etector.dart';
 import 'package:collector_app/views/pages/Input_data_table/open_google_map.dart';
 import 'package:collector_app/views/receipt_screen/search_widget.dart';
 import 'package:flutter/cupertino.dart';
@@ -34,13 +38,15 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
   int receiptCount = 0;
   bool _sortByDateAscending = true;
   Map<String, List<Map<String, dynamic>>> _allAccounts = {};
-
+  late User? userData;
+  String accountName = '';
   void _toggleSortByDate() {
     setState(() {
       _sortByDateAscending = !_sortByDateAscending;
       _sortFilteredAccounts();
     });
   }
+  String clientAlia = '';
 
   void _sortFilteredAccounts() {
     final sortedKeys = _filteredAccounts.keys.toList()
@@ -68,6 +74,7 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
     }
 
     _filteredAccounts = sortedMap;
+    print('fliterAccount :$_filteredAccounts');
   }
 
   Future<void> _loadAccounts() async {
@@ -80,8 +87,9 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
       Map<String, List<Map<String, dynamic>>> grouped;
 
       if (widget.acNo != null) {
-        final newrecords =
-            accounts.where((element) => element['ac_no'] == widget.acNo).toList();
+        final newrecords = accounts
+            .where((element) => element['ac_no'] == widget.acNo)
+            .toList();
 
         grouped = _groupAccountsByName(newrecords); // ✅ group after filtering
       } else {
@@ -166,11 +174,11 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
       _allAccounts.forEach((key, accounts) {
         final filtered = accounts.where((acc) {
           final id = acc['id_no']?.toString().toLowerCase() ?? '';
-          final name = acc['ac_name']?.toString().toLowerCase() ?? '';
+          accountName = acc['ac_name']?.toString().toLowerCase() ?? '';
           final accNo = acc['ac_no']?.toString().toLowerCase() ?? '';
 
           return id.contains(query) ||
-              name.contains(query) ||
+              accountName.contains(query) ||
               accNo.contains(query);
         }).toList();
 
@@ -222,9 +230,17 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
     super.initState();
     _loadAccounts();
     _searchController.addListener(_handleSearch);
-    if(widget.acNo != null){
+    if (widget.acNo != null) {
       _searchController.text = widget.acNo!;
     }
+    fetchuserDetials();
+  }
+
+
+  fetchuserDetials() async {
+    userData = await SharedPref.getUser();
+    clientAlia = await SharedPref.getAlias();
+    print('userData : ${userData!.toJson()}');
   }
 
   @override
@@ -364,7 +380,7 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
       itemBuilder: (context, index) {
         final name = _filteredAccounts.keys.elementAt(index);
         final accounts = _filteredAccounts[name]!;
-
+        print('accts: $accounts');
         final totalAmount = accounts.fold<double>(
           0,
           (sum, acc) => sum + (acc['input_amount'] as num).toDouble(),
@@ -399,39 +415,96 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
                 right: 15,
                 child: InkWell(
                   onTap: () async {
-                    List<CollectionAccount> collectionAccounts =
-                        accounts.asMap().entries.map((account) {
-                      return CollectionAccount(
-                        accountType:
-                            account.value['account_type_name'] ?? 'N/A',
-                        accountNumber: account.value['ac_no'] ?? 'N/A',
-                        amount: double.tryParse(
-                                account.value['input_amount'].toString()) ??
-                            0.0,
-                        comment: account.value['col_remarks'] ?? '',
-                      );
-                    }).toList();
-
-                    if (collectionAccounts.isEmpty) {
-                      print('No accounts available to print');
+                    final printerType = await PrinterDetector.detect();
+                    if (printerType == PrinterType.none) {
+                      print('No supported printer on this device');
                       return;
                     }
 
-                    bool printSuccess =
-                        await CollectionReceiptPrinter.printCollectionReceipt(
-                      userName: name,
-                      groupName: accounts.first['center_name'] ?? 'N/A',
-                      collectionDate:
-                          accounts.first['col_date_time'] is DateTime
-                              ? accounts.first['col_date_time']
-                              : DateTime.now(),
-                      collectionLocation:
-                          accounts.first['col_location'] ?? 'N/A',
-                      idNumber: accounts.first['id_no'] ?? 'N/A',
-                      accounts: collectionAccounts,
-                    );
-                    if (!printSuccess) {
-                      print('Failed to print receipt');
+                    if (printerType == PrinterType.aidl) {
+                      bool ready = false;
+                      for (int i = 0; i < 6; i++) {
+                        ready = await PrinterService.isReady();
+                        if (ready) break;
+                        await Future.delayed(const Duration(milliseconds: 500));
+                      }
+                      if (!ready) {
+                        print('Printer service not available');
+                        return;
+                      }
+
+                      final collectionAccounts = accounts.map((account) {
+                        return CollectionAccount(
+                          accountType: account['account_type_name'] ?? 'N/A',
+                          accountNumber: account['ac_no'] ?? 'N/A',
+                          amount: double.tryParse(
+                                  account['input_amount'].toString()) ??
+                              0.0,
+                          comment: account['col_remarks'] ?? '',
+                        );
+                      }).toList();
+
+                      if (collectionAccounts.isEmpty) {
+                        print('No accounts available to print');
+                        return;
+                      }
+                      final uniqueNames = accounts
+                          .map((e) => e['ac_name']?.toString() ?? '')
+                          .toSet()
+                          .join(', ');
+
+                      final success = await PrinterService.printReceipt(
+                        userData: userData,
+                        userName: uniqueNames,
+                        groupName: accounts.first['center_name'] ?? 'N/A',
+                        collectionDate:
+                            accounts.first['col_date_time'] is DateTime
+                                ? accounts.first['col_date_time']
+                                : DateTime.now(),
+                        collectionLocation:
+                            accounts.first['col_location'] ?? 'N/A',
+                        idNumber: accounts.first['id_no'] ?? 'N/A',
+                        accounts: collectionAccounts,
+                        clientAlia: clientAlia
+                      );
+
+                      if (!success) print('Failed to print receipt');
+                    } else {
+                      List<CollectionAccount> collectionAccounts =
+                          accounts.asMap().entries.map((account) {
+                        return CollectionAccount(
+                          accountType:
+                              account.value['account_type_name'] ?? 'N/A',
+                          accountNumber: account.value['ac_no'] ?? 'N/A',
+                          amount: double.tryParse(
+                                  account.value['input_amount'].toString()) ??
+                              0.0,
+                          comment: account.value['col_remarks'] ?? '',
+                        );
+                      }).toList();
+
+                      if (collectionAccounts.isEmpty) {
+                        print('No accounts available to print');
+                        return;
+                      }
+
+                      bool printSuccess =
+                          await CollectionReceiptPrinter.printCollectionReceipt(
+                        userData: userData,
+                        userName: accountName,
+                        groupName: accounts.first['center_name'] ?? 'N/A',
+                        collectionDate:
+                            accounts.first['col_date_time'] is DateTime
+                                ? accounts.first['col_date_time']
+                                : DateTime.now(),
+                        collectionLocation:
+                            accounts.first['col_location'] ?? 'N/A',
+                        idNumber: accounts.first['id_no'] ?? 'N/A',
+                        accounts: collectionAccounts,
+                      );
+                      if (!printSuccess) {
+                        print('Failed to print receipt');
+                      }
                     }
                   },
                   child:

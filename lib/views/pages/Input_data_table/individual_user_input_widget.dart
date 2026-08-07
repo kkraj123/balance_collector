@@ -1,8 +1,12 @@
 import 'package:collector_app/common/app/theme.dart';
+import 'package:collector_app/common/models/users.dart';
+import 'package:collector_app/common/shared_pref.dart';
 import 'package:collector_app/common/widget/customtabletextstyle.dart';
 import 'package:collector_app/feature/database/cb_db.dart';
 import 'package:collector_app/feature/geoLocation/get_current_location.dart';
 import 'package:collector_app/feature/pos_print/printer_util.dart';
+import 'package:collector_app/senraise_printer/helper.dart';
+import 'package:collector_app/senraise_printer/printer_etector.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
@@ -38,6 +42,8 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
   double totalDueAmount = 0;
   double totalInputAmount = 0;
   String coordinates = '';
+  late User? userDetails;
+  String clientAlia = '';
 
   @override
   void dispose() {
@@ -61,6 +67,7 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
   @override
   void initState() {
     super.initState();
+    laodUserDetails();
     isFromInputAmount =
         widget.account.map((acc) => acc['input_amount'] != null).toList();
 
@@ -91,6 +98,11 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
       controller.addListener(_updateTotalInputAmount);
     }
     _updateTotalInputAmount();
+  }
+
+  laodUserDetails() async {
+    userDetails = await SharedPref.getUser();
+    clientAlia = await SharedPref.getAlias();
   }
 
   Future<void> _fetchLocation() async {
@@ -273,50 +285,171 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
                       children: [
                         TextButton(
                             onPressed: () async {
-                              List<CollectionAccount> collectionAccounts =
-                                  widget.account.asMap().entries.map((account) {
-                                return CollectionAccount(
-                                  accountType:
-                                      account.value['account_type_name'] ??
-                                          'N/A',
-                                  accountNumber:
-                                      account.value['ac_no'] ?? 'N/A',
-                                  amount: double.tryParse(
-                                          amountControllers[account.key]
-                                              .text) ??
-                                      0.0,
-                                  comment: account.value['col_remarks'] ?? '',
-                                );
-                              }).toList();
-
-                              if (collectionAccounts.isEmpty) {
-                                print('No accounts available to print');
+                              final printerType =
+                                  await PrinterDetector.detect();
+                              if (printerType == PrinterType.none) {
+                                print('No supported printer on this device');
                                 return;
                               }
 
-                              bool printSuccess = await CollectionReceiptPrinter
-                                  .printCollectionReceipt(
-                                userName: widget.account.first['ac_name'],
-                                groupName:
-                                    widget.account.first['center_name'] ??
-                                        'N/A',
-                                collectionDate: widget.account
-                                        .first['col_date_time'] is DateTime
-                                    ? widget.account.first['col_date_time']
-                                    : DateTime.now(),
-                                collectionLocation:
-                                    widget.account.first['col_location'] ??
-                                        'N/A',
-                                idNumber:
-                                    widget.account.first['id_no'] ?? 'N/A',
-                                accounts: collectionAccounts,
-                              );
-                              if (!printSuccess) {
-                                print('Failed to print receipt');
+                              if (printerType == PrinterType.aidl) {
+                                bool ready = false;
+                                for (int i = 0; i < 6; i++) {
+                                  ready = await PrinterService.isReady();
+                                  if (ready) break;
+                                  await Future.delayed(
+                                      const Duration(milliseconds: 500));
+                                }
+                                if (!ready) {
+                                  print('Printer service not available');
+                                  return;
+                                }
+
+                                final collectionAccounts =
+                                    widget.account.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final account = entry.value;
+                                  return CollectionAccount(
+                                    accountType:
+                                        account['account_type_name'] ?? 'N/A',
+                                    accountNumber: account['ac_no'] ?? 'N/A',
+                                    amount: double.tryParse(
+                                            amountControllers[index].text) ??
+                                        0.0, // ← fix
+                                    comment: remarksControllers[index]
+                                        .text, // ← also use controller
+                                  );
+                                }).toList();
+
+                                if (collectionAccounts.isEmpty) {
+                                  print('No accounts available to print');
+                                  return;
+                                }
+                                final uniqueNames = widget.account
+                                    .map((e) => e['ac_name']?.toString() ?? '')
+                                    .toSet()
+                                    .join(', ');
+
+                                final success =
+                                    await PrinterService.printReceipt(
+                                  userData: userDetails,
+                                  userName: uniqueNames,
+                                  groupName:
+                                      widget.account.first['center_name'] ??
+                                          'N/A',
+                                  collectionDate: widget.account
+                                          .first['col_date_time'] is DateTime
+                                      ? widget.account.first['col_date_time']
+                                      : DateTime.now(),
+                                  collectionLocation:
+                                      widget.account.first['col_location'] ??
+                                          'N/A',
+                                  idNumber:
+                                      widget.account.first['id_no'] ?? 'N/A',
+                                  accounts: collectionAccounts,
+                                  clientAlia: clientAlia
+                                );
+
+                                if (!success) print('Failed to print receipt');
+                              } else {
+                                List<CollectionAccount> collectionAccounts =
+                                    widget.account
+                                        .asMap()
+                                        .entries
+                                        .map((account) {
+                                  return CollectionAccount(
+                                    accountType:
+                                        account.value['account_type_name'] ??
+                                            'N/A',
+                                    accountNumber:
+                                        account.value['ac_no'] ?? 'N/A',
+                                    amount: double.tryParse(account
+                                            .value['input_amount']
+                                            .toString()) ??
+                                        0.0,
+                                    comment: account.value['col_remarks'] ?? '',
+                                  );
+                                }).toList();
+
+                                if (collectionAccounts.isEmpty) {
+                                  print('No accounts available to print');
+                                  return;
+                                }
+                                final uniqueNames = widget.account
+                                    .map((e) => e['ac_name']?.toString() ?? '')
+                                    .toSet()
+                                    .join(', ');
+
+                                bool printSuccess =
+                                    await CollectionReceiptPrinter
+                                        .printCollectionReceipt(
+                                  userData: userDetails,
+                                  userName: uniqueNames,
+                                  groupName:
+                                      widget.account.first['center_name'] ??
+                                          'N/A',
+                                  collectionDate: widget.account
+                                          .first['col_date_time'] is DateTime
+                                      ? widget.account.first['col_date_time']
+                                      : DateTime.now(),
+                                  collectionLocation:
+                                      widget.account.first['col_location'] ??
+                                          'N/A',
+                                  idNumber:
+                                      widget.account.first['id_no'] ?? 'N/A',
+                                  accounts: collectionAccounts,
+                                );
+                                if (!printSuccess) {
+                                  print('Failed to print receipt');
+                                }
                               }
-                              Navigator.pop(context);
-                              Navigator.pop(context);
                             },
+                            // onPressed: () async {
+                            //   List<CollectionAccount> collectionAccounts =
+                            //       widget.account.asMap().entries.map((account) {
+                            //     return CollectionAccount(
+                            //       accountType:
+                            //           account.value['account_type_name'] ??
+                            //               'N/A',
+                            //       accountNumber:
+                            //           account.value['ac_no'] ?? 'N/A',
+                            //       amount: double.tryParse(
+                            //               amountControllers[account.key]
+                            //                   .text) ??
+                            //           0.0,
+                            //       comment: account.value['col_remarks'] ?? '',
+                            //     );
+                            //   }).toList();
+
+                            //   if (collectionAccounts.isEmpty) {
+                            //     print('No accounts available to print');
+                            //     return;
+                            //   }
+
+                            //   bool printSuccess = await CollectionReceiptPrinter
+                            //       .printCollectionReceipt(
+
+                            //     userName: widget.account.first['ac_name'],
+                            //     groupName:
+                            //         widget.account.first['center_name'] ??
+                            //             'N/A',
+                            //     collectionDate: widget.account
+                            //             .first['col_date_time'] is DateTime
+                            //         ? widget.account.first['col_date_time']
+                            //         : DateTime.now(),
+                            //     collectionLocation:
+                            //         widget.account.first['col_location'] ??
+                            //             'N/A',
+                            //     idNumber:
+                            //         widget.account.first['id_no'] ?? 'N/A',
+                            //     accounts: collectionAccounts,
+                            //   );
+                            //   if (!printSuccess) {
+                            //     print('Failed to print receipt');
+                            //   }
+                            //   Navigator.pop(context);
+                            //   Navigator.pop(context);
+                            // },
                             child: Container(
                                 height: 45,
                                 width: 70,

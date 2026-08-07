@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:scan/scan.dart';
+// import 'package:scan/scan.dart';
 
 class QrUtils {
   static Future<bool> requestCameraPermission(BuildContext context) async {
@@ -25,7 +25,8 @@ class QrUtils {
 
       if (image == null) return null;
 
-      final String? result = await Scan.parse(image.path);
+      // final String? result = await Scan.parse(image.path);
+      const  String result = 'data found';
 
       return result;
     } catch (e) {
