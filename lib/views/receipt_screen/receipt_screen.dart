@@ -27,11 +27,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Map<String, List<Map<String, dynamic>>> _filteredAccounts = {};
   List<Map<String, dynamic>> _allaccounts = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  static const int _pageSize = 10;
+  int _offset = 0;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_handleSearch);
+    _verticalController.addListener(_onScroll);
     _loadAccounts();
   }
 
@@ -40,25 +45,96 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     _searchController.removeListener(_handleSearch);
     _searchController.dispose();
     _horizontalController.dispose();
+    _verticalController.removeListener(_onScroll);
     _verticalController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadAccounts() async {
-    setState(() => _isLoading = true);
+  void _onScroll() {
+    if (_selectedIndex != 0) return;
+    if (!_hasMore || _isLoadingMore || _isLoading) return;
+
+    final position = _verticalController.position;
+
+    if (position.maxScrollExtent <= 0) return;
+
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      _loadAccounts();
+    }
+  }
+
+  // Future<void> _loadAccounts() async {
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     // final accounts = await _db.getAllAccounts();
+  //     final accounts = await _db.getAccountsPaginated(offset: 10, limit: 10);
+  //     _allaccounts = accounts;
+  //     final grouped = _groupAccountsByName(accounts);
+
+  //     setState(() {
+  //       _groupedAccounts = grouped;
+  //       _filteredAccounts = grouped;
+  //       _isLoading = false;
+  //     });
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     setState(() => _isLoading = false);
+  //     debugPrint('Error loading accounts: $e');
+  //   }
+  // }
+  Future<void> _loadAccounts({bool reset = false}) async {
+    if (reset) {
+      setState(() {
+        _isLoading = true;
+        _offset = 0;
+        _hasMore = true;
+        _allaccounts = [];
+        _groupedAccounts = {};
+        _filteredAccounts = {};
+      });
+    } else {
+      if (!_hasMore || _isLoadingMore) return;
+      setState(() => _isLoadingMore = true);
+    }
+
     try {
-      final accounts = await _db.getAllAccounts();
-      _allaccounts = accounts;
-      final grouped = _groupAccountsByName(accounts);
+      final accounts = await _db.getAccountsPaginated(
+        offset: _offset,
+        limit: _pageSize,
+      );
+      debugPrint(
+          'Fetched ${accounts.length} raw rows at offset ${_offset - accounts.length}');
+
+      _allaccounts.addAll(accounts);
+      _offset += accounts.length;
+      final stillMore = accounts.length == _pageSize;
+
+      // merge new batch into existing grouped map instead of rebuilding it
+      final merged =
+          Map<String, List<Map<String, dynamic>>>.from(_groupedAccounts);
+      for (var account in accounts) {
+        if (account['is_inserted'] == 1) continue;
+        final name = account['id_no'] as String;
+        merged.putIfAbsent(name, () => []);
+        merged[name]!.add(account);
+      }
 
       setState(() {
-        _groupedAccounts = grouped;
-        _filteredAccounts = grouped;
+        _groupedAccounts = merged;
+        _filteredAccounts = _searchController.text.isEmpty
+            ? merged
+            : filterGroupedAccounts(
+                merged, _searchController.text.toLowerCase());
+        _hasMore = stillMore;
         _isLoading = false;
+        _isLoadingMore = false;
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
       debugPrint('Error loading accounts: $e');
     }
   }
@@ -143,7 +219,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 setState(() {
                   _selectedIndex = index;
                   _selectedIndex == 0
-                      ? _loadAccounts()
+                      ? _loadAccounts(reset: true)
                       : _loadAccountsByGroup();
                 });
               }),
@@ -217,8 +293,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     }
     return ListView.builder(
       controller: _verticalController,
-      itemCount: _filteredAccounts.length,
+      itemCount:
+          _filteredAccounts.length + (_hasMore && _selectedIndex == 0 ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index >= _filteredAccounts.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
         final name = _filteredAccounts.keys.elementAt(index);
         final accounts = _filteredAccounts[name]!;
 
@@ -258,7 +341,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ).then((_) {
               setState(() {
                 if (_selectedIndex == 0) {
-                  _loadAccounts();
+                  _loadAccounts(reset: true);
                 } else {
                   _loadAccountsByGroup();
                 }

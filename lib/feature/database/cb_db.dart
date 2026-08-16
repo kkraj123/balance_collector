@@ -353,4 +353,24 @@ class CBDB {
 
     return results.isNotEmpty ? results.first : null;
   }
+
+  Future<List<Map<String, dynamic>>> getAccountsPaginated({
+    required int offset,
+    required int limit,
+  }) async {
+    final db = await DatabaseService().database;
+    return await db.query(
+      tableName,
+      // orderBy: 'id_no ASC, rowid ASC',
+      limit: limit,
+      offset: offset,
+    );
+  }
+
+  Future<int> getAccountsCount() async {
+    final db = await DatabaseService().database;
+    final result =
+        await db.rawQuery('SELECT COUNT(*) as count FROM $tableName');
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
 }
