@@ -30,7 +30,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
     //     iconPath: 'assets/icons/icon5.svg',
     //     title: 'Payment',
     //     destination: const PaymentPageWidget()),
-     DashboardItem(
+    DashboardItem(
         iconPath: 'assets/icons/icon1.svg',
         title: 'Receipt Summery',
         destination: const ReceiptSummryScreen()),
@@ -43,7 +43,6 @@ class _DashboardWidgetState extends State<DashboardWidget> {
     //     title: 'Payment Report',
     //     destination: const PaymentPageWidget()),
 
-   
     DashboardItem(
         iconPath: 'assets/icons/icon6.svg',
         title: 'Push Data',

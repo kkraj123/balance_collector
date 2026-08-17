@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/widget/common_page.dart';
 import 'package:collector_app/feature/database/cb_db.dart';
@@ -31,6 +29,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Map<String, List<Map<String, dynamic>>> _filteredAccounts = {};
   List<Map<String, dynamic>> _allaccounts = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  static const int _pageSize = 10;
+  int _offset = 0;
 
   @override
   void initState() {
@@ -47,6 +49,19 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     _verticalController.dispose();
     super.dispose();
   }
+
+  // void _onScroll() {
+  //   if (_selectedIndex != 0) return;
+  //   if (!_hasMore || _isLoadingMore || _isLoading) return;
+
+  //   final position = _verticalController.position;
+
+  //   if (position.maxScrollExtent <= 0) return;
+
+  //   if (position.pixels >= position.maxScrollExtent - 200) {
+  //     _loadAccounts();
+  //   }
+  // }
 
   Future<void> _loadAccounts() async {
     setState(() => _isLoading = true);
@@ -66,6 +81,62 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       debugPrint('Error loading accounts: $e');
     }
   }
+  // Future<void> _loadAccounts({bool reset = false}) async {
+  //   if (reset) {
+  //     setState(() {
+  //       _isLoading = true;
+  //       _offset = 0;
+  //       _hasMore = true;
+  //       _allaccounts = [];
+  //       _groupedAccounts = {};
+  //       _filteredAccounts = {};
+  //     });
+  //   } else {
+  //     if (!_hasMore || _isLoadingMore) return;
+  //     setState(() => _isLoadingMore = true);
+  //   }
+
+  //   try {
+  //     final accounts = await _db.getAccountsPaginated(
+  //       offset: _offset,
+  //       limit: _pageSize,
+  //     );
+  //     debugPrint(
+  //         'Fetched ${accounts.length} raw rows at offset ${_offset - accounts.length}');
+
+  //     _allaccounts.addAll(accounts);
+  //     _offset += accounts.length;
+  //     final stillMore = accounts.length == _pageSize;
+
+  //     // merge new batch into existing grouped map instead of rebuilding it
+  //     final merged =
+  //         Map<String, List<Map<String, dynamic>>>.from(_groupedAccounts);
+  //     for (var account in accounts) {
+  //       if (account['is_inserted'] == 1) continue;
+  //       final name = account['id_no'] as String;
+  //       merged.putIfAbsent(name, () => []);
+  //       merged[name]!.add(account);
+  //     }
+
+  //     setState(() {
+  //       _groupedAccounts = merged;
+  //       _filteredAccounts = _searchController.text.isEmpty
+  //           ? merged
+  //           : filterGroupedAccounts(
+  //               merged, _searchController.text.toLowerCase());
+  //       _hasMore = stillMore;
+  //       _isLoading = false;
+  //       _isLoadingMore = false;
+  //     });
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     setState(() {
+  //       _isLoading = false;
+  //       _isLoadingMore = false;
+  //     });
+  //     debugPrint('Error loading accounts: $e');
+  //   }
+  // }
 
   Future<void> _loadAccountsByGroup() async {
     setState(() => _isLoading = true);
@@ -162,6 +233,20 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               isQrShow: true,
             ),
             const SizedBox(height: 5),
+            Container(
+              width: MediaQuery.sizeOf(context).width,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                color: Colors.white,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Total Items: ${_filteredAccounts.length}',
+                style:
+                    const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              ),
+            ),
             Expanded(child: _buildTable()),
           ],
         ),
@@ -223,6 +308,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       controller: _verticalController,
       itemCount: _filteredAccounts.length,
       itemBuilder: (context, index) {
+        if (index >= _filteredAccounts.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
         final name = _filteredAccounts.keys.elementAt(index);
         final accounts = _filteredAccounts[name]!;
 
@@ -338,12 +429,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       accounts.first['contact'] != null)
                   ? Row(
                       children: [
-                        Text(
-                          "Contact: ${accounts.first['contact'] ?? 'N/A'}",
+                        Expanded(
+                          child: Text(
+                            "Contact: ${accounts.first['contact'] ?? 'N/A'}",
+                          ),
                         ),
-                        const Icon(
-                          Icons.call_outlined,
-                          color: CustomTheme.appThemeColorPrimary,
+                        Expanded(
+                          child: const Icon(
+                            Icons.call_outlined,
+                            color: CustomTheme.appThemeColorPrimary,
+                          ),
                         ),
                       ],
                     )
