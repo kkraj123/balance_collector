@@ -1,5 +1,6 @@
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/utils/size_utils.dart';
+import 'package:collector_app/common/widget/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -12,16 +13,15 @@ class SearchBarWidget extends StatelessWidget {
   final VoidCallback onQRPressed;
   final bool isQrShow;
 
-  const SearchBarWidget({
-    super.key,
-    required this.searchController,
-    required this.showSearchBy,
-    required this.selectedIndex,
-    required this.onFilterPressed,
-    required this.onTogglePressed,
-    required this.onQRPressed,
-    required this.isQrShow
-  });
+  const SearchBarWidget(
+      {super.key,
+      required this.searchController,
+      required this.showSearchBy,
+      required this.selectedIndex,
+      required this.onFilterPressed,
+      required this.onTogglePressed,
+      required this.onQRPressed,
+      required this.isQrShow});
 
   @override
   Widget build(BuildContext context) {

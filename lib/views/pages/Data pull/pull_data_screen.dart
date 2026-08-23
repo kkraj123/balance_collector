@@ -219,14 +219,14 @@ class _PullDataState extends State<PullData> {
                 ),
               ),
               Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1, 
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ],
           ),
         ),
@@ -363,16 +363,26 @@ class _PullDataState extends State<PullData> {
 
           List<CustomerAccountModel> customers = state.data;
           final db = CBDB();
-          if (isNewOnly) {
-            for (var customer in customers) {
-              await db.insertIfNotExists(customer.toJson());
-            }
-          } else {
+          final rows = customers.map((c) => c.toJson()).toList();
+          if(isNewOnly){
+            await db.bulkInsertIfNotExists(rows);
+          }else{
             await db.deleteAllAccounts();
-            for (var customer in customers) {
-              await db.upsertCustomerAccount(customer.toJson());
-            }
+            await db.bulkUpsertAccounts(rows);
           }
+
+          // List<CustomerAccountModel> customers = state.data;
+          // final db = CBDB();
+          // if (isNewOnly) {
+          //   for (var customer in customers) {
+          //     await db.insertIfNotExists(customer.toJson());
+          //   }
+          // } else {
+          //   await db.deleteAllAccounts();
+          //   for (var customer in customers) {
+          //     await db.upsertCustomerAccount(customer.toJson());
+          //   }
+          // }
 
           if (context.mounted) {
             setState(() {
