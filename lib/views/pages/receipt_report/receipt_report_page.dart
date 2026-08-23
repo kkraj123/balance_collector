@@ -382,6 +382,7 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
               searchController: _searchController,
               showSearchBy: _isShowSearchBy,
               selectedIndex: _selectedIndex,
+              readOnly: false,
               onFilterPressed: () {
                 setState(() {
                   _isShowSearchBy = !_isShowSearchBy;

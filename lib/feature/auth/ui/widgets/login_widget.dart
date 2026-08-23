@@ -88,6 +88,7 @@ class _LoginWidgetState extends State<LoginWidget> {
           setState(() => _isLoading = false);
           print('userObject :${state.data.toJson()}');
           if (_rememberMe) {
+            SharedPref.setDefaultBtranch(state.data.officer.brAlias);
             SharedPref.setUsername(staffIdController.text.trim());
             SharedPref.setPassword(passwordController.text.trim());
             SharedPref.setAlias(clientAliasController.text.trim());

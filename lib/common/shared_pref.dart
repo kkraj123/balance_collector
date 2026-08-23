@@ -25,6 +25,8 @@ class SharedPref {
 
   static const _rememberMe = 'rememberMe';
   
+  static const _defoult_branch = "default_branch";
+
   static Future setRememberMe(bool status) async {
     final instance = await SharedPreferences.getInstance();
     await instance.setBool(_rememberMe, status);
@@ -236,5 +238,16 @@ class SharedPref {
   static Future getDeviceUUID() async {
     final instance = await SharedPreferences.getInstance();
     return instance.get(_deviceUUID);
+  }
+
+   static Future setDefaultBtranch(String branch) async {
+    final instance = await SharedPreferences.getInstance();
+    await instance.setString(_defoult_branch, branch);
+  }
+
+  static Future<String> getDefaultBranch() async {
+    final instance = await SharedPreferences.getInstance();
+    final res = instance.getString(_defoult_branch);
+    return res ?? "";
   }
 }

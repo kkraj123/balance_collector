@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:collector_app/common/app/theme.dart';
+import 'package:collector_app/common/models/users.dart';
+import 'package:collector_app/common/shared_pref.dart';
 import 'package:collector_app/common/widget/common_page.dart';
+import 'package:collector_app/common/widget/custom_text_field.dart';
 import 'package:collector_app/feature/database/cb_db.dart';
 import 'package:collector_app/feature/qr_scan/qr_scan_widget.dart';
 import 'package:collector_app/views/pages/Input_data_table/input_data_table.dart';
@@ -50,9 +53,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalController = ScrollController();
   final ScrollController _verticalController = ScrollController();
+  TextEditingController brachCodeController = TextEditingController();
+  final nameController = TextEditingController();
+  final accountNumberController = TextEditingController();
+  final mobileNumberController = TextEditingController();
+  final idNumberController = TextEditingController();
   final CBDB _db = CBDB();
   bool _isShowSearchBy = false;
   int _selectedIndex = 0;
+  int accountCounts = 0;
 
   Map<String, List<Map<String, dynamic>>> _groupedAccounts = {};
   Map<String, List<Map<String, dynamic>>> _filteredAccounts = {};
@@ -75,6 +84,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
   Timer? _debounce;
   int _searchRequestId = 0;
+  String? defaultBranch;
 
   @override
   void initState() {
@@ -82,6 +92,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     _searchController.addListener(_onSearchChanged);
     _verticalController.addListener(_onScroll);
     _loadFirstPage();
+    _loadDefaultBranch();
+  }
+
+  _loadDefaultBranch() async {
+    defaultBranch = await SharedPref.getDefaultBranch();
+    if (defaultBranch == null) {
+      brachCodeController.text = '';
+    } else {
+      brachCodeController.text = defaultBranch ?? '';
+    }
   }
 
   @override
@@ -138,6 +158,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         offset: _groupOffset,
         limit: _groupPageSize,
       );
+
+      accountCounts = await _db.getAccountsCount();
 
       if (keys.isEmpty) {
         setState(() => _hasMore = false);
@@ -246,10 +268,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         child: Column(
           children: [
             SearchBarWidget(
-              
               searchController: _searchController,
               showSearchBy: _isShowSearchBy,
               selectedIndex: _selectedIndex,
+              onSearchFieldTap: () {
+                showFilterDialog();
+              },
+              readOnly: true,
               onFilterPressed: () {
                 setState(() {
                   _isShowSearchBy = !_isShowSearchBy;
@@ -281,7 +306,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               ),
               alignment: Alignment.center,
               child: Text(
-                'Total Items: ${_filteredEntries.length}',
+                'Total Items: $accountCounts',
                 style: const TextStyle(
                     color: Colors.black, fontWeight: FontWeight.bold),
               ),
@@ -291,6 +316,160 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         ),
       ),
     );
+  }
+
+  showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(dialogContext).size.height * 0.9,
+            ),
+            child: Padding(
+              padding: const EdgeInsetsGeometry.all(5),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Search Filters',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Fill in any combination — all optional.',
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 12),
+                    CustomTextField(
+                      hintText: 'Branch code',
+                      controller: brachCodeController,
+                    ),
+                    const SizedBox(height: 10),
+                    CustomTextField(
+                      hintText: 'Account number',
+                      controller: accountNumberController,
+                    ),
+                    const SizedBox(height: 10),
+                    CustomTextField(
+                      hintText: 'Account name',
+                      controller: nameController,
+                    ),
+                    const SizedBox(height: 10),
+                    CustomTextField(
+                      hintText: 'Id Number',
+                      controller: idNumberController,
+                    ),
+                    const SizedBox(height: 10),
+                    CustomTextField(
+                      hintText: 'Mobile Number',
+                      controller: mobileNumberController,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Cancel',
+                              style: TextStyle(color: Colors.black)),
+                        ),
+                        const SizedBox(
+                          width: 8,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            brachCodeController.clear();
+                            nameController.clear();
+                            accountNumberController.clear();
+                            mobileNumberController.clear();
+                            idNumberController.clear();
+                          },
+                          child: const Text(
+                            'Clear',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: const Text(
+                            'Search',
+                            style: TextStyle(color: Colors.green),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    ).then((confirmed) {
+      if (confirmed == true && mounted) {
+        _runAdvancedSearch();
+      }
+    });
+  }
+
+  Future<void> _runAdvancedSearch() async {
+    final branch = brachCodeController.text.trim();
+    final name = nameController.text.trim();
+    final accNo = accountNumberController.text.trim();
+    final idNo = idNumberController.text.trim();
+    final mobileNo = mobileNumberController.text.trim();
+
+    // Nothing filled in — treat it like clearing search.
+    if (branch.isEmpty &&
+        name.isEmpty &&
+        accNo.isEmpty &&
+        idNo.isEmpty &&
+        mobileNo.isEmpty) {
+      setState(() {
+        _isSearchActive = false;
+        _setFiltered(_groupedAccounts);
+      });
+      return;
+    }
+
+    setState(() => _isSearchActive = true);
+    try {
+      final matches = await _db.searchAccountsAdvanced(
+          branch: branch.isEmpty ? null : branch,
+          name: name.isEmpty ? null : name,
+          accountNumber: accNo.isEmpty ? null : accNo,
+          idNo: idNo.isEmpty ? null : idNo,
+          mobileNo: mobileNo.isEmpty ? null : mobileNo);
+
+      debugPrint('--- Search results (${matches.length}) ---');
+      for (final acc in matches) {
+        debugPrint(
+            'Name: ${acc['ac_name']}  |  Branch: ${acc['br_alias']}  |  Acc No: ${acc['ac_no']}');
+      }
+
+      final grouped = _selectedIndex == 1
+          ? await compute(_groupByGroupNameIsolate, matches)
+          : await compute(_groupByNameIsolate, matches);
+
+      if (!mounted) return;
+      setState(() => _setFiltered(grouped));
+    } catch (e) {
+      debugPrint('Advanced search error: $e');
+    }
   }
 
   Future<bool> _isAlreadyInserted(String idNo) async {
@@ -425,8 +604,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     );
   }
 
-  Widget _buildGroupNameList(
-      String name, List<Map<String, dynamic>> accounts) {
+  Widget _buildGroupNameList(String name, List<Map<String, dynamic>> accounts) {
     return Container(
       decoration: BoxDecoration(
           color: CustomTheme.tableColorSecondary,

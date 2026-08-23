@@ -12,6 +12,8 @@ class SearchBarWidget extends StatelessWidget {
   final ValueChanged<int> onTogglePressed;
   final VoidCallback onQRPressed;
   final bool isQrShow;
+  final bool readOnly;
+  final VoidCallback? onSearchFieldTap;
 
   const SearchBarWidget(
       {super.key,
@@ -21,7 +23,9 @@ class SearchBarWidget extends StatelessWidget {
       required this.onFilterPressed,
       required this.onTogglePressed,
       required this.onQRPressed,
-      required this.isQrShow});
+      required this.isQrShow,
+      required this.readOnly,
+      this.onSearchFieldTap});
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +57,8 @@ class SearchBarWidget extends StatelessWidget {
                 ),
                 child: TextField(
                   autofocus: false,
+                  readOnly: readOnly,
+                  onTap: onSearchFieldTap,
                   controller: searchController,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(

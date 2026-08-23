@@ -487,15 +487,61 @@ class CBDB {
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
-  Future<List<Map<String, dynamic>>> getAccountsByBranch(String branch) async {
-  final db = await DatabaseService().database;
-  final like = '%$branch%';
-  return db.query(
-    tableName,
-    where: '(is_inserted = 0 OR is_inserted IS NULL) AND br_alias LIKE ?',
-    whereArgs: [like],
-  );
-}
+
+  /// Combined optional-field search: branch code / account name / account
+  /// number. Any field left null or empty is skipped — only the provided
+  /// fields are AND'ed together in the WHERE clause. If nothing is
+  /// provided, falls back to the normal active-accounts list.
+  Future<List<Map<String, dynamic>>> searchAccountsAdvanced({
+    String? branch,
+    String? name,
+    String? accountNumber,
+    String? idNo,
+    String? mobileNo,
+  }) async {
+    final db = await DatabaseService().database;
+
+    final conditions = <String>['(is_inserted = 0 OR is_inserted IS NULL)'];
+    final args = <Object?>[];
+
+    final trimmedBranch = branch?.trim() ?? '';
+    final trimmedName = name?.trim() ?? '';
+    final trimmedAccNo = accountNumber?.trim() ?? '';
+    final trimmedIdNo = idNo?.trim() ?? '';
+    final trimmedMobilNo = mobileNo?.trim() ?? '';
+
+    if (trimmedBranch.isNotEmpty) {
+      conditions.add('br_alias LIKE ?');
+      args.add('%$trimmedBranch%');
+    }
+    if (trimmedName.isNotEmpty) {
+      conditions.add('ac_name LIKE ?');
+      args.add('%$trimmedName%');
+    }
+    if (trimmedAccNo.isNotEmpty) {
+      conditions.add('ac_no LIKE ?');
+      args.add('%$trimmedAccNo%');
+    }
+    if (trimmedIdNo.isNotEmpty) {
+      conditions.add('id_no LIKE ?');
+      args.add('%$trimmedIdNo%');
+    }
+    if (trimmedMobilNo.isNotEmpty) {
+      conditions.add('contact LIKE ?');
+      args.add('%$trimmedMobilNo%');
+    }
+
+    // Nothing entered at all — just show the normal active list.
+    if (args.isEmpty) {
+      return getAllActiveAccounts();
+    }
+
+    return db.query(
+      tableName,
+      where: conditions.join(' AND '),
+      whereArgs: args,
+    );
+  }
 }
 // import 'package:collector_app/feature/database/database_service.dart';
 // import 'package:sqflite/sqflite.dart';
