@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collector_app/app/ExportPreviewScreen.dart';
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/models/users.dart';
 import 'package:collector_app/common/shared_pref.dart';
@@ -84,20 +85,25 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
     setState(() => _isLoading = true);
     var filteredGrouped = {};
     try {
-      final accounts = await _db.getAllAccounts();
-      print('accountList: ${accounts.length}');
+      // final accounts = await _db.getAllAccounts();
+      // print('accountList: ${accounts.length}');
 
-      Map<String, List<Map<String, dynamic>>> grouped;
+      // Map<String, List<Map<String, dynamic>>> grouped;
 
-      if (widget.acNo != null) {
-        final newrecords = accounts
-            .where((element) => element['ac_no'] == widget.acNo)
-            .toList();
+      // if (widget.acNo != null) {
+      //   final newrecords = accounts
+      //       .where((element) => element['ac_no'] == widget.acNo)
+      //       .toList();
 
-        grouped = _groupAccountsByName(newrecords); // ✅ group after filtering
-      } else {
-        grouped = _groupAccountsByName(accounts);
-      }
+      //   grouped = _groupAccountsByName(newrecords); // ✅ group after filtering
+      // } else {
+      //   grouped = _groupAccountsByName(accounts);
+      // }
+      // _allAccounts = grouped;
+      // final filteredGrouped = _filterAccountsWithInputValues(grouped);
+
+      final accounts = await _db.getCollectedAccounts(acNo: widget.acNo);
+      final grouped = _groupAccountsByName(accounts);
       _allAccounts = grouped;
       final filteredGrouped = _filterAccountsWithInputValues(grouped);
 
@@ -399,6 +405,47 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
               onQRPressed: () {},
               isQrShow: false,
             ),
+            const SizedBox(
+              height: 10,
+            ),
+            Align(
+                alignment: Alignment.centerRight,
+                child: InkWell(
+                  onTap: () async {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) =>
+                          const Center(child: CircularProgressIndicator()),
+                    );
+                    final sessionUUID = await SharedPref.getSessionUUID();
+                    final rows =
+                        await CBDB().getInsertedAccountsBySession(sessionUUID);
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ExportPreviewScreen(accounts: rows),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 35,
+                    width: 130,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.green),
+                    child: const Center(
+                      child: Text(
+                        'Export To Excel',
+                        style: TextStyle(color: Colors.white),
+                        textScaler: TextScaler.linear(1),
+                      ),
+                    ),
+                  ),
+                )),
             const SizedBox(height: 10),
             Expanded(child: _buildTable()),
           ],
@@ -577,8 +624,10 @@ class _ReceiptReportPageState extends State<ReceiptReportPage> {
         ),
         Row(
           children: [
-            Text(
-              "Collected Location: ${accounts.first['col_location'] ?? 'N/A'}",
+            Expanded(
+              child: Text(
+                "Collected Location: ${accounts.first['col_location'] ?? 'N/A'}",
+              ),
             ),
             InkWell(
               onTap: () {

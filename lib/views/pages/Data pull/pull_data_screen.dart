@@ -1,3 +1,4 @@
+import 'package:collector_app/app/ExcelExportService.dart';
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/bloc/data_state.dart';
 import 'package:collector_app/common/shared_pref.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 
 class PullData extends StatefulWidget {
   const PullData({super.key});
@@ -364,13 +366,21 @@ class _PullDataState extends State<PullData> {
           List<CustomerAccountModel> customers = state.data;
           final db = CBDB();
           final rows = customers.map((c) => c.toJson()).toList();
-          if(isNewOnly){
+          if (isNewOnly) {
             await db.bulkInsertIfNotExists(rows);
-          }else{
-            await db.deleteAllAccounts();
-            await db.bulkUpsertAccounts(rows);
+          } else {
+            final existingCollected = await db.CheckIfInserted();
+            if (existingCollected.isNotEmpty) {
+              try {
+                await ExcelExportService().saveCsvToDownloads(existingCollected,
+                    fileName: 'collection_data_backup_before_reset.csv');
+              } catch (_) {}
+            }
           }
-
+          await db.deleteAllAccounts();
+          await db.bulkUpsertAccounts(rows);
+          final newSessionUUID = const Uuid().v4();
+          await SharedPref.setSessionUUID(newSessionUUID);
           // List<CustomerAccountModel> customers = state.data;
           // final db = CBDB();
           // if (isNewOnly) {

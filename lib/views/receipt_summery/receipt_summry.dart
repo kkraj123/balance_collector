@@ -63,31 +63,37 @@ class _ReceiptSummeryPageState extends State<ReceiptSummryScreen> {
   Future<void> _loadAccounts() async {
     setState(() => _isLoading = true);
     try {
-      final accounts = await _db.getAllAccounts();
+      final accounts = await _db.getCollectedAccounts(acNo: widget.acNo);
       print('accountList: ${accounts.length}');
 
-      List<Map<String, dynamic>> filtered;
-      if (widget.acNo != null) {
-        filtered = accounts
-            .where((element) => element['ac_no'] == widget.acNo)
-            .toList();
-      } else {
-        filtered = List<Map<String, dynamic>>.from(accounts);
-      }
-
-      filtered = filtered.where((account) {
-        final rawAmount = account['input_amount'];
-        final amount = rawAmount is num
-            ? rawAmount.toDouble()
-            : double.tryParse(rawAmount?.toString() ?? '') ?? 0.0;
-        return amount >= 0.01 &&
-            account['input_amount'] != null &&
-            account['col_remarks'] != null;
-      }).toList();
-
-      _allAccountsFlat = filtered;
+      _allAccountsFlat = accounts;
       print(
           'LOADED ${_allAccountsFlat.length} usable records (with amount>=0.01 and remarks)');
+      // final accounts = await _db.getAllAccounts();
+      // print('accountList: ${accounts.length}');
+
+      // List<Map<String, dynamic>> filtered;
+      // if (widget.acNo != null) {
+      //   filtered = accounts
+      //       .where((element) => element['ac_no'] == widget.acNo)
+      //       .toList();
+      // } else {
+      //   filtered = List<Map<String, dynamic>>.from(accounts);
+      // }
+
+      // filtered = filtered.where((account) {
+      //   final rawAmount = account['input_amount'];
+      //   final amount = rawAmount is num
+      //       ? rawAmount.toDouble()
+      //       : double.tryParse(rawAmount?.toString() ?? '') ?? 0.0;
+      //   return amount >= 0.01 &&
+      //       account['input_amount'] != null &&
+      //       account['col_remarks'] != null;
+      // }).toList();
+
+      // _allAccountsFlat = filtered;
+      // print(
+      //     'LOADED ${_allAccountsFlat.length} usable records (with amount>=0.01 and remarks)');
 
       setState(() {
         _filteredAccountsFlat = _allAccountsFlat;

@@ -24,6 +24,8 @@ class SharedPref {
   static const _accountsList = "accountsList";
 
   static const _rememberMe = 'rememberMe';
+
+  static const _sessionUUID = '_sessionUUID';
   
   static const _defoult_branch = "default_branch";
 
@@ -248,6 +250,16 @@ class SharedPref {
   static Future<String> getDefaultBranch() async {
     final instance = await SharedPreferences.getInstance();
     final res = instance.getString(_defoult_branch);
+    return res ?? "";
+  }
+   static Future setSessionUUID(String sessionid) async {
+    final instance = await SharedPreferences.getInstance();
+    await instance.setString(_sessionUUID, sessionid);
+  }
+
+  static Future<String> getSessionUUID() async {
+    final instance = await SharedPreferences.getInstance();
+    final res = instance.getString(_sessionUUID);
     return res ?? "";
   }
 }

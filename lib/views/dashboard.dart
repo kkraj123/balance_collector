@@ -1,11 +1,10 @@
+import 'package:collector_app/app/ExportPreviewScreen.dart';
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/shared_pref.dart';
-import 'package:collector_app/common/utils/size_utils.dart';
 import 'package:collector_app/common/widget/common_page.dart';
-import 'package:collector_app/feature/pos_print/printer_widget.dart';
+import 'package:collector_app/feature/database/cb_db.dart';
 import 'package:collector_app/senraise_printer/LogoCacheService.dart';
 import 'package:collector_app/views/pages/Data%20pull/pull_data_screen.dart';
-import 'package:collector_app/views/pages/payment_page/payment_page_widget.dart';
 import 'package:collector_app/views/pages/data_push/PushDataScreen.dart';
 import 'package:collector_app/views/pages/receipt_report/receipt_report_page.dart';
 import 'package:collector_app/views/receipt_screen/receipt_screen.dart';
@@ -93,7 +92,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                   itemCount: _dashboardItems.length,
                   itemBuilder: (context, index) {
                     final item = _dashboardItems[index];
-                    return buildIconButton(item.iconPath, item.title, () {
+                    return buildIconButton(item.iconPath, item.title, () async {
                       Navigator.push(
                         context,
                         MaterialPageRoute(

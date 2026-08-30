@@ -1,3 +1,4 @@
+import 'package:collector_app/app/ExcelExportService.dart';
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/models/users.dart';
 import 'package:collector_app/common/shared_pref.dart';
@@ -200,8 +201,14 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
     setState(() {
       isSaving = true;
     });
+    final List<Map<String, dynamic>> savedRows = [];
     try {
-      final String uid = const Uuid().v4();
+      final String recieptId = const Uuid().v4();
+      String sessionId = await SharedPref.getSessionUUID();
+      if (sessionId.isEmpty) {
+        sessionId = const Uuid().v4();
+        await SharedPref.setSessionUUID(sessionId);
+      }
       for (int i = 0; i < widget.account.length; i++) {
         final account = widget.account[i];
         final amountText = amountControllers[i].text;
@@ -219,9 +226,11 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
           }
         }
         await dbService.updateInputValuesForNewEntry(account['id'].toString(),
-            amount ?? 0.0, remarksText, coordinates, uid);
-      }
+            amount ?? 0.0, remarksText, coordinates, recieptId, sessionId);
 
+        // savedRows.add(saveRow);
+      }
+      _syncToDownloads();
       if (mounted) {
         showDialog(
             context: context,
@@ -332,23 +341,26 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
 
                                 final success =
                                     await PrinterService.printReceipt(
-                                  userData: userDetails,
-                                  userName: uniqueNames,
-                                  groupName:
-                                      widget.account.first['center_name'] ??
-                                          'N/A',
-                                  collectionDate: widget.account
-                                          .first['col_date_time'] is DateTime
-                                      ? widget.account.first['col_date_time']
-                                      : DateTime.now(),
-                                  collectionLocation:
-                                      widget.account.first['col_location'] ??
-                                          'N/A',
-                                  idNumber:
-                                      widget.account.first['id_no'] ?? 'N/A',
-                                  accounts: collectionAccounts,
-                                  clientAlia: clientAlia
-                                );
+                                        userData: userDetails,
+                                        userName: uniqueNames,
+                                        groupName: widget
+                                                .account.first['center_name'] ??
+                                            'N/A',
+                                        collectionDate:
+                                            widget.account
+                                                        .first['col_date_time']
+                                                    is DateTime
+                                                ? widget.account
+                                                    .first['col_date_time']
+                                                : DateTime.now(),
+                                        collectionLocation: widget.account
+                                                .first['col_location'] ??
+                                            'N/A',
+                                        idNumber:
+                                            widget.account.first['id_no'] ??
+                                                'N/A',
+                                        accounts: collectionAccounts,
+                                        clientAlia: clientAlia);
 
                                 if (!success) print('Failed to print receipt');
                               } else {
@@ -631,8 +643,10 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
                 },
                 child: Row(
                   children: [
-                    Text(
-                      "Contact: ${account.first['contact'] ?? 'N/A'}",
+                    Expanded(
+                      child: Text(
+                        "Contact: ${account.first['contact'] ?? 'N/A'}",
+                      ),
                     ),
                     const Icon(
                       Icons.call_outlined,
@@ -958,5 +972,17 @@ class _IndividualUserInputState extends State<IndividualUserInput> {
         ),
       ),
     );
+  }
+
+  Future<void> _syncToDownloads() async {
+    try {
+      final allCollected = await dbService.CheckIfInserted();
+      await ExcelExportService().saveCsvToDownloads(allCollected);
+    } catch (e) {
+      // Silent by design — the save itself already succeeded, and this
+      // is just a background convenience copy. Don't interrupt the user's
+      // flow (print/export dialog) with a separate error for this.
+      debugPrint('Background Excel sync failed: $e');
+    }
   }
 }

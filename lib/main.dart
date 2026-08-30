@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:collector_app/common/app/navigation_service.dart';
 import 'package:collector_app/common/app/theme.dart';
 import 'package:collector_app/common/wrapper/multi_bloc_wrapper.dart';
@@ -5,6 +7,7 @@ import 'package:collector_app/common/wrapper/multi_repo_wrapper.dart';
 import 'package:collector_app/feature/auth/ui/screens/login_screen.dart';
 // import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:media_store_plus/media_store_plus.dart';
 
 // void main() async {
 //   runApp(DevicePreview(
@@ -12,6 +15,11 @@ import 'package:flutter/material.dart';
 //       builder: (context) => const MyApp()));
 // }
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isAndroid) {
+    await MediaStore.ensureInitialized();
+  }
+  MediaStore.appFolder = "CollectorApp";
   runApp(const MyApp());
 }
 

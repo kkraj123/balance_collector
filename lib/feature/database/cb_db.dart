@@ -63,7 +63,8 @@ class CBDB {
     col_date_time TEXT NULL,
     col_location TEXT NULL,
     is_inserted BOOLEAN NULL,
-    col_group_id TEXT NULL
+    col_group_id TEXT NULL,
+    pull_session_id TEXT NULL
  );
  CREATE INDEX idx_ac_name ON cd_accounts(ac_name);
  CREATE INDEX idx_iden_id ON cd_accounts(iden_id);
@@ -169,6 +170,7 @@ class CBDB {
       'col_location': null,
       'is_inserted': false,
       'col_group_id': null,
+      'pull_session_id' : null
     };
   }
 
@@ -270,8 +272,8 @@ class CBDB {
     }
   }
 
-  Future<void> updateInputValuesForNewEntry(String accountId, double amount,
-      String remarks, String coordinates, String uid) async {
+  Future<Map<String, dynamic>> updateInputValuesForNewEntry(String accountId,
+      double amount, String remarks, String coordinates, String uid, String sessionId) async {
     final db = await DatabaseService().database;
     DateTime currentDate = DateTime.now();
     String formattedDate =
@@ -292,8 +294,30 @@ class CBDB {
     newAccount['col_location'] = coordinates;
     newAccount['is_inserted'] = true;
     newAccount['col_group_id'] = uid;
+    newAccount['pull_session_id'] = sessionId;
 
     await db.insert(tableName, newAccount);
+    return newAccount;
+  }
+
+  Future<List<Map<String, dynamic>>> getInsertedAccountsBySession(
+      String sessionUUID) async {
+    final db = await DatabaseService().database;
+    return db.query(tableName,
+        where: "is_inserted = 1 AND pull_session_id = ?",
+        whereArgs: [sessionUUID]);
+  }
+
+  Future<List<String>> getAllSessionIds() async {
+    final db = await DatabaseService().database;
+    final rows = await db.rawQuery('''
+    SELECT DISTINCT col_group_id, MAX(col_date_time) as last_time
+    FROM $tableName
+    WHERE is_inserted = 1 AND col_group_id IS NOT NULL
+    GROUP BY col_group_id
+    ORDER BY last_time DESC
+  ''');
+    return rows.map((r) => r['pull_session_id'] as String).toList();
   }
 
   Future<Map<String, dynamic>> getUserById({
@@ -331,11 +355,6 @@ class CBDB {
     );
   }
 
-  /// Server-side search. Uses the FTS5 index (fast, handles substring
-  /// matches on any column indexed above) when available, otherwise falls
-  /// back to a plain LIKE search — e.g. on devices whose SQLite build has
-  /// no FTS5 module ("no such module: fts5"), or on an old DB that hasn't
-  /// run createTable's FTS setup yet.
   Future<List<Map<String, dynamic>>> searchAccounts(String query) async {
     final db = await DatabaseService().database;
     final trimmed = query.trim();
@@ -534,6 +553,24 @@ class CBDB {
     // Nothing entered at all — just show the normal active list.
     if (args.isEmpty) {
       return getAllActiveAccounts();
+    }
+
+    return db.query(
+      tableName,
+      where: conditions.join(' AND '),
+      whereArgs: args,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getCollectedAccounts(
+      {String? acNo}) async {
+    final db = await DatabaseService().database;
+    final conditions = <String>['is_inserted = 1', 'input_amount IS NOT NULL'];
+    final args = <Object?>[];
+
+    if (acNo != null && acNo.isNotEmpty) {
+      conditions.add('ac_no = ?');
+      args.add(acNo);
     }
 
     return db.query(

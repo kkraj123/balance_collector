@@ -1,4 +1,5 @@
 import 'package:collector_app/common/app/theme.dart';
+import 'package:collector_app/common/shared_pref.dart';
 import 'package:collector_app/common/widget/common_page.dart';
 import 'package:collector_app/feature/database/cb_db.dart';
 import 'package:collector_app/feature/geoLocation/get_current_location.dart';
@@ -206,7 +207,12 @@ class _GroupByGroupNameState extends State<GroupByGroupName> {
         var accounts = _filteredAccounts[name]!;
         var amountControllers = allAmountControllers[userIndex];
         var remarksControllers = allRemarksControllers[userIndex];
-        final String uid = const Uuid().v4();
+        String recieptId = const Uuid().v4();
+        final sessionUUID = await SharedPref.getSessionUUID();
+        if (sessionUUID.isEmpty) {
+          recieptId = const Uuid().v4();
+          await SharedPref.setSessionUUID(recieptId);
+        }
         for (int i = 0; i < accounts.length; i++) {
           final account = accounts[i];
           final amountText = amountControllers[i].text;
@@ -220,7 +226,7 @@ class _GroupByGroupNameState extends State<GroupByGroupName> {
           }
 
           await _db.updateInputValuesForNewEntry(account['id'].toString(),
-              amount ?? 0.0, remarksText, coordinates, uid);
+              amount ?? 0.0, remarksText, coordinates, recieptId, sessionUUID);
         }
 
         userIndex++;
